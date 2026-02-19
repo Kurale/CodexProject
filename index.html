@@ -176,18 +176,28 @@
     .question { margin-top: 4px; white-space: pre-line; }
 
     .example-line {
-      margin: 6px 0;
+      margin: 4px 0;
       background: rgba(255, 255, 255, 0.82);
       width: fit-content;
+      max-width: 100%;
       padding: 2px 6px;
       border-radius: 4px;
+      font-size: 23px;
+      line-height: 1.15;
+      white-space: nowrap;
     }
+
+    .example-line.can-wrap { white-space: normal; }
 
     .example-index {
       display: inline-block;
-      width: 24px;
+      width: 20px;
+      font-size: 16px;
       font-weight: 700;
+      vertical-align: top;
     }
+
+    .eq-col { display: inline-block; line-height: 1.2; }
 
     .answer {
       margin-top: 8px;
@@ -338,21 +348,26 @@
       };
     }
 
-    function buildMultiExampleTask(type, count, exampleGenerator) {
+    function buildMultiExampleTask(type, count, exampleGenerator, options = {}) {
       const examples = [];
       for (let i = 0; i < count; i++) {
         examples.push(exampleGenerator());
       }
+      const lineClass = options.wrap ? "example-line can-wrap" : "example-line";
       return {
         type,
-        questionHTML: examples.map((item, idx) => `<div class="example-line"><span class="example-index">${idx + 1})</span>${item.questionHTML}</div>`).join(""),
+        questionHTML: examples.map((item, idx) => `<div class="${lineClass}"><span class="example-index">${idx + 1})</span>${item.questionHTML}</div>`).join(""),
         answer: examples.map((item, idx) => `${idx + 1}) ${item.answer}`).join("; ")
       };
     }
 
+    function examplesCountForType(type, settings) {
+      return ["E", "I"].includes(type) ? 1 : settings.examplesPerTask;
+    }
+
     // Генератор A: сложение/вычитание столбиком (2-4 разряда, с/без переноса)
     function generateAddition(settings) {
-      return buildMultiExampleTask("A", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("A", examplesCountForType("A", settings), () => {
         const digits = randInt(2, Math.min(4, settings.difficulty + 1));
         const min = Math.max(settings.range.min, 10 ** (digits - 1));
         const max = Math.min(settings.range.max, 10 ** digits - 1);
@@ -361,7 +376,7 @@
         const op = pick(["+", "−"]);
         const answer = op === "+" ? a + b : a - b;
         return {
-          questionHTML: `<span style="font-size:34px;letter-spacing:1px">${a} ${op} ${b} = ___</span>`,
+          questionHTML: `<span style="font-size:22px;letter-spacing:1px">${a} ${op} ${b} = ___</span>`,
           answer
         };
       });
@@ -369,34 +384,34 @@
 
     // Генератор B: умножение/деление (табличные и столбиком)
     function generateDivision(settings) {
-      return buildMultiExampleTask("B", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("B", examplesCountForType("B", settings), () => {
         const isDivision = state.rng() > 0.45;
         if (isDivision) {
           const divisor = randInt(2, 9 + settings.difficulty * 2);
           const quotient = randInt(2, 8 + settings.difficulty * 3);
           const dividend = divisor * quotient;
           return {
-            questionHTML: `<span style="font-size:34px">${dividend} : ${divisor} = ___</span>`,
+            questionHTML: `<span style="font-size:22px">${dividend} : ${divisor} = ___</span>`,
             answer: quotient
           };
         }
         const a = randInt(2, 12);
         const b = randInt(2, 10 + settings.difficulty);
         return {
-          questionHTML: `<span style="font-size:34px">${a} · ${b} = ___</span>`,
+          questionHTML: `<span style="font-size:22px">${a} · ${b} = ___</span>`,
           answer: a * b
         };
       });
     }
 
     function generateCompare(settings) {
-      return buildMultiExampleTask("C", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("C", examplesCountForType("C", settings), () => {
         const a = randInt(10, 80), b = randInt(1, 20), c = randInt(10, 80), d = randInt(1, 20);
         const left = a + b;
         const right = c + d;
         const sign = left > right ? ">" : left < right ? "<" : "=";
         return {
-          questionHTML: `<span style="font-size:32px">${a} + ${b} □ ${c} + ${d}</span>`,
+          questionHTML: `<span style="font-size:26px">${a} + ${b} □ ${c} + ${d}</span>`,
           answer: sign
         };
       });
@@ -408,13 +423,13 @@
     }
 
     function generateMeasures(settings) {
-      return buildMultiExampleTask("D", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("D", examplesCountForType("D", settings), () => {
         const units = ["мм", "см", "дм", "м", "км"];
         const u1 = pick(units), u2 = pick(units);
         const v1 = randInt(2, 180), v2 = randInt(2, 180);
         const sign = toMm(v1, u1) > toMm(v2, u2) ? ">" : toMm(v1, u1) < toMm(v2, u2) ? "<" : "=";
         return {
-          questionHTML: `<span style="font-size:32px">${v1} ${u1} □ ${v2} ${u2}</span>`,
+          questionHTML: `<span style="font-size:26px">${v1} ${u1} □ ${v2} ${u2}</span>`,
           answer: sign
         };
       });
@@ -429,7 +444,7 @@
 
     // Генератор E: фигуры из клеток + задачи на периметр/площадь
     function generateGeometry(settings) {
-      return buildMultiExampleTask("E", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("E", examplesCountForType("E", settings), () => {
         const shapes = [
           [[0,0],[1,0],[0,1],[1,1],[2,1],[2,2]],
           [[0,0],[1,0],[2,0],[1,1],[1,2]],
@@ -446,7 +461,7 @@
         }
         const askPerimeter = state.rng() > 0.5;
         return {
-          questionHTML: `<div>${geometrySvg(cells)}</div><div style="font-size:28px">${askPerimeter ? "Периметр" : "Площадь"} = ___</div>`,
+          questionHTML: `<div>${geometrySvg(cells)}</div><div style="font-size:22px">${askPerimeter ? "Периметр" : "Площадь"} = ___</div>`,
           answer: askPerimeter ? `${perimeter} см` : `${area} см²`
         };
       });
@@ -467,31 +482,31 @@
 
     // Генератор F: дроби с кругом, делённым на n частей
     function generateFractions(settings) {
-      return buildMultiExampleTask("F", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("F", examplesCountForType("F", settings), () => {
         const parts = pick([3,4,5,6,8,10,12]);
         const shaded = randInt(1, parts - 1);
         return {
-          questionHTML: `<div class="fraction-wrap">${fractionSvg(parts, shaded)}<div style="font-size:30px">= ___</div></div>`,
+          questionHTML: `<div class="fraction-wrap">${fractionSvg(parts, shaded)}<div style="font-size:24px">= ___</div></div>`,
           answer: `${shaded}/${parts}`
         };
       });
     }
 
     function generateEquation(settings) {
-      return buildMultiExampleTask("G", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("G", examplesCountForType("G", settings), () => {
         const x = randInt(2, 20);
         const y = randInt(2, 20);
         const chooseDivision = state.rng() > 0.5;
         if (chooseDivision) {
           const left = x * y;
           return {
-            questionHTML: `<span style="font-size:32px">${left} : y = ${x}; y = ___</span>`,
+            questionHTML: `<span class="eq-col">${left} : y = ${x}<br/>y = ___</span>`,
             answer: y
           };
         }
         const left = x + y;
         return {
-          questionHTML: `<span style="font-size:32px">x + ${y} = ${left}; x = ___</span>`,
+          questionHTML: `<span class="eq-col">x + ${y} = ${left}<br/>x = ___</span>`,
           answer: x
         };
       });
@@ -499,7 +514,7 @@
 
     // Генератор H: текстовые задачи по шаблонам
     function generateWordProblem(settings) {
-      return buildMultiExampleTask("H", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("H", examplesCountForType("H", settings), () => {
         if (state.rng() > 0.5) {
           const A = randInt(20, 90), B = randInt(20, 90), k = pick([2,3,4,5]);
           return {
@@ -513,7 +528,7 @@
           questionHTML: `Из произведения ${A} и ${B} вычесть частное ${C} и ${D}.`,
           answer: A * B - C / D
         };
-      });
+      }, { wrap: true });
     }
 
     function clockSvg(hour, minute, showHands) {
@@ -535,18 +550,18 @@
     }
 
     function generateTime(settings) {
-      return buildMultiExampleTask("I", settings.examplesPerTask, () => {
+      return buildMultiExampleTask("I", examplesCountForType("I", settings), () => {
         const hour = randInt(1, 12);
         const minute = pick([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
         const askRead = state.rng() > 0.45;
         if (askRead) {
           return {
-            questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, true)}<div style="font-size:32px">__ : __</div></div>`,
+            questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, true)}<div style="font-size:26px">__ : __</div></div>`,
             answer: `${pad2(hour)}:${pad2(minute)}`
           };
         }
         return {
-          questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, false)}<div style="font-size:28px">Нарисуй стрелки: ${pad2(hour)}:${pad2(minute)}</div></div>`,
+          questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, false)}<div style="font-size:22px">Нарисуй стрелки: ${pad2(hour)}:${pad2(minute)}</div></div>`,
           answer: `${pad2(hour)}:${pad2(minute)}`
         };
       });
