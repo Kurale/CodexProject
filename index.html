@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Генератор недельных рабочих листов (3–4 класс)</title>
+  <style>
+    :root {
+      --border: #111;
+      --muted: #555;
+      --grid-line: rgba(0, 0, 0, 0.12);
+      --paper: #fff;
+      --ui: #f4f4f4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Arial", sans-serif;
+      color: #111;
+      background: #ececec;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 16px auto 28px;
+      padding: 0 12px;
+    }
+
+    .controls {
+      background: var(--ui);
+      border: 1px solid #c9c9c9;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .controls h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    label { font-size: 14px; color: #333; }
+
+    input[type="number"], select {
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      padding: 4px 6px;
+      width: 90px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .task-types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .task-types label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fff;
+      border: 1px solid #d6d6d6;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 13px;
+    }
+
+    button {
+      border: 1px solid #111;
+      background: #fff;
+      color: #111;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #f3f3f3; }
+
+    .worksheet {
+      background: var(--paper);
+      border: 1.6px solid var(--border);
+      display: grid;
+      grid-template-columns: 130px repeat(3, 1fr);
+      width: 100%;
+      min-height: 980px;
+    }
+
+    .day-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: center;
+      border-right: 1.6px solid var(--border);
+      border-bottom: 1.6px solid var(--border);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 44px;
+      letter-spacing: 1px;
+      color: #444;
+      background: #fafafa;
+      padding: 8px;
+      font-weight: 700;
+    }
+
+    .task-cell {
+      border-right: 1.6px solid var(--border);
+      border-bottom: 1.6px solid var(--border);
+      position: relative;
+      min-height: 165px;
+      padding: 12px;
+      overflow: hidden;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 28px 28px;
+      background-position: 0 0;
+    }
+
+    .task-cell:nth-child(4n) { border-right: none; }
+
+    .task-number {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 30px;
+      height: 30px;
+      border: 1.5px solid #222;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      font-weight: 700;
+    }
+
+    .task-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(255,255,255,.85);
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .question { margin-top: 4px; white-space: pre-line; }
+
+    .answer {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed #666;
+      font-size: 16px;
+      display: none;
+      background: rgba(255,255,255,.85);
+      width: fit-content;
+      padding-inline: 6px;
+      border-radius: 4px;
+    }
+
+    .show-answers .answer { display: inline-block; }
+
+    .clock-wrap,
+    .fraction-wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    svg { max-width: 100%; height: auto; }
+
+    .print-hint { font-size: 13px; color: #555; }
+
+    @page { size: A4 portrait; margin: 8mm; }
+
+    @media print {
+      body { background: #fff; font-size: 16px; }
+      .controls { display: none !important; }
+      .app { max-width: none; margin: 0; padding: 0; }
+      .worksheet {
+        border: 1.3px solid #000;
+        min-height: auto;
+      }
+      .day-label, .task-cell {
+        border-color: #000;
+        break-inside: avoid;
+      }
+      .task-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="controls" id="controls">
+      <h1>Генератор недельных листов по математике (3–4 класс)</h1>
+      <div class="row">
+        <div class="group">
+          <label for="minNum">Мин. число</label>
+          <input id="minNum" type="number" value="2" min="1" max="9000" />
+        </div>
+        <div class="group">
+          <label for="maxNum">Макс. число</label>
+          <input id="maxNum" type="number" value="999" min="5" max="99999" />
+        </div>
+        <div class="group">
+          <label for="difficulty">Сложность</label>
+          <select id="difficulty">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+        <div class="group">
+          <label for="lang">Язык</label>
+          <select id="lang"><option value="ru" selected>Русский</option></select>
+        </div>
+        <div class="group">
+          <label for="seedInput">Seed</label>
+          <input id="seedInput" type="number" value="0" />
+        </div>
+      </div>
+      <div class="task-types" id="typeToggles"></div>
+      <div class="row">
+        <button id="generateBtn">Сгенерировать новый лист</button>
+        <button id="answersBtn">Показать ответы</button>
+        <button id="printBtn">Печать (A4, ч/б)</button>
+        <button id="saveJsonBtn">Сохранить JSON шаблона</button>
+        <span class="print-hint">PDF: используйте «Печать» → «Сохранить как PDF».</span>
+      </div>
+    </section>
+
+    <section class="worksheet" id="worksheet"></section>
+  </div>
+
+  <script>
+    const DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+    const TASK_TYPES = [
+      { key: "A", title: "Сложение/вычитание" },
+      { key: "B", title: "Умножение/деление" },
+      { key: "C", title: "Сравнение выражений" },
+      { key: "D", title: "Величины" },
+      { key: "E", title: "Геометрия" },
+      { key: "F", title: "Дроби" },
+      { key: "G", title: "Уравнения" },
+      { key: "H", title: "Текстовые задачи" },
+      { key: "I", title: "Время" }
+    ];
+
+    const state = {
+      showAnswers: false,
+      worksheetData: null,
+      rng: null
+    };
+
+    function seededRandom(seed) {
+      let x = Math.sin(seed) * 10000;
+      return function () {
+        x = Math.sin(x) * 10000;
+        return x - Math.floor(x);
+      };
+    }
+
+    function randInt(min, max) {
+      return Math.floor(state.rng() * (max - min + 1)) + min;
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(state.rng() * arr.length)];
+    }
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function getSettings() {
+      const min = Number(document.getElementById("minNum").value || 2);
+      const max = Number(document.getElementById("maxNum").value || 999);
+      const difficulty = Number(document.getElementById("difficulty").value || 2);
+      const lang = document.getElementById("lang").value;
+      let seed = Number(document.getElementById("seedInput").value);
+      if (!seed) {
+        seed = Date.now() % 1000000;
+        document.getElementById("seedInput").value = seed;
+      }
+      const enabledTypes = [...document.querySelectorAll(".type-toggle")]
+        .filter((el) => el.checked)
+        .map((el) => el.value);
+
+      return {
+        range: { min: Math.max(1, min), max: Math.max(min + 1, max) },
+        difficulty,
+        lang,
+        seed,
+        enabledTypes: enabledTypes.length ? enabledTypes : TASK_TYPES.map((t) => t.key)
+      };
+    }
+
+    // Генератор A: сложение/вычитание столбиком (2-4 разряда, с/без переноса)
+    function generateAddition(settings) {
+      const digits = randInt(2, Math.min(4, settings.difficulty + 1));
+      const min = Math.max(settings.range.min, 10 ** (digits - 1));
+      const max = Math.min(settings.range.max, 10 ** digits - 1);
+      const a = randInt(min, max);
+      const b = randInt(min, max);
+      const op = pick(["+", "−"]);
+      const answer = op === "+" ? a + b : a - b;
+      return {
+        type: "A",
+        questionHTML: `<div style="font-size:40px;letter-spacing:2px">${a} ${op} ${b} = ___</div>`,
+        answer
+      };
+    }
+
+    // Генератор B: умножение/деление (табличные и столбиком)
+    function generateDivision(settings) {
+      const isDivision = state.rng() > 0.45;
+      if (isDivision) {
+        const divisor = randInt(2, 9 + settings.difficulty * 2);
+        const quotient = randInt(2, 8 + settings.difficulty * 3);
+        const dividend = divisor * quotient;
+        return {
+          type: "B",
+          questionHTML: `<div style="font-size:40px">${dividend} : ${divisor} = ___</div>`,
+          answer: quotient
+        };
+      }
+      const a = randInt(2, 12);
+      const b = randInt(2, 10 + settings.difficulty);
+      return {
+        type: "B",
+        questionHTML: `<div style="font-size:40px">${a} · ${b} = ___</div>`,
+        answer: a * b
+      };
+    }
+
+    function generateCompare() {
+      const a = randInt(10, 80), b = randInt(1, 20), c = randInt(10, 80), d = randInt(1, 20);
+      const left = a + b;
+      const right = c + d;
+      const sign = left > right ? ">" : left < right ? "<" : "=";
+      return {
+        type: "C",
+        questionHTML: `<div style="font-size:38px">${a} + ${b} □ ${c} + ${d}</div>`,
+        answer: sign
+      };
+    }
+
+    function toMm(value, unit) {
+      const map = { "мм": 1, "см": 10, "дм": 100, "м": 1000, "км": 1000000 };
+      return value * map[unit];
+    }
+
+    function generateMeasures() {
+      const units = ["мм", "см", "дм", "м", "км"];
+      const u1 = pick(units), u2 = pick(units);
+      const v1 = randInt(2, 180), v2 = randInt(2, 180);
+      const sign = toMm(v1, u1) > toMm(v2, u2) ? ">" : toMm(v1, u1) < toMm(v2, u2) ? "<" : "=";
+      return {
+        type: "D",
+        questionHTML: `<div style="font-size:38px">${v1} ${u1} □ ${v2} ${u2}</div>`,
+        answer: sign
+      };
+    }
+
+    function geometrySvg(cells) {
+      const size = 22;
+      const w = 180, h = 120;
+      const rects = cells.map(([x, y]) => `<rect x="${x * size}" y="${y * size}" width="${size}" height="${size}" fill="none" stroke="#222"/>`).join("");
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${rects}</svg>`;
+    }
+
+    // Генератор E: фигуры из клеток + задачи на периметр/площадь
+    function generateGeometry() {
+      const shapes = [
+        [[0,0],[1,0],[0,1],[1,1],[2,1],[2,2]],
+        [[0,0],[1,0],[2,0],[1,1],[1,2]],
+        [[0,0],[0,1],[1,1],[2,1],[2,2],[3,2]],
+      ];
+      const cells = pick(shapes);
+      const area = cells.length;
+      const set = new Set(cells.map(([x,y])=>`${x},${y}`));
+      let perimeter = 0;
+      for (const [x,y] of cells) {
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy]) => {
+          if (!set.has(`${x+dx},${y+dy}`)) perimeter++;
+        });
+      }
+      const askPerimeter = state.rng() > 0.5;
+      return {
+        type: "E",
+        questionHTML: `<div>${geometrySvg(cells)}</div><div style="font-size:32px">${askPerimeter ? "Периметр" : "Площадь"} = ___</div>`,
+        answer: askPerimeter ? `${perimeter} см` : `${area} см²`
+      };
+    }
+
+    function fractionSvg(parts, shaded) {
+      const center = 58, r = 52;
+      let paths = "";
+      for (let i = 0; i < parts; i++) {
+        const a0 = (Math.PI * 2 * i) / parts - Math.PI / 2;
+        const a1 = (Math.PI * 2 * (i + 1)) / parts - Math.PI / 2;
+        const x0 = center + r * Math.cos(a0), y0 = center + r * Math.sin(a0);
+        const x1 = center + r * Math.cos(a1), y1 = center + r * Math.sin(a1);
+        paths += `<path d="M ${center} ${center} L ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1} Z" fill="${i < shaded ? "#d9d9d9" : "#fff"}" stroke="#111"/>`;
+      }
+      return `<svg width="120" height="120" viewBox="0 0 120 120">${paths}</svg>`;
+    }
+
+    // Генератор F: дроби с кругом, делённым на n частей
+    function generateFractions() {
+      const parts = pick([3,4,5,6,8,10,12]);
+      const shaded = randInt(1, parts - 1);
+      return {
+        type: "F",
+        questionHTML: `<div class="fraction-wrap">${fractionSvg(parts, shaded)}<div style="font-size:36px">= ___</div></div>`,
+        answer: `${shaded}/${parts}`
+      };
+    }
+
+    function generateEquation() {
+      const x = randInt(2, 20);
+      const y = randInt(2, 20);
+      const chooseDivision = state.rng() > 0.5;
+      if (chooseDivision) {
+        const left = x * y;
+        return {
+          type: "G",
+          questionHTML: `<div style="font-size:38px">${left} : y = ${x}<br/>y = ___</div>`,
+          answer: y
+        };
+      }
+      const left = x + y;
+      return {
+        type: "G",
+        questionHTML: `<div style="font-size:38px">x + ${y} = ${left}<br/>x = ___</div>`,
+        answer: x
+      };
+    }
+
+    // Генератор H: текстовые задачи по шаблонам
+    function generateWordProblem() {
+      if (state.rng() > 0.5) {
+        const A = randInt(20, 90), B = randInt(20, 90), k = pick([2,3,4,5]);
+        return {
+          type: "H",
+          questionHTML: `Сумму ${A} и ${B} уменьшить в ${k} раз.`,
+          answer: (A + B) / k
+        };
+      }
+      const A = randInt(6, 20), B = randInt(6, 20), D = pick([2,3,4,5,6]), q = randInt(2, 8);
+      const C = D * q;
+      return {
+        type: "H",
+        questionHTML: `Из произведения ${A} и ${B} вычесть частное ${C} и ${D}.`,
+        answer: A * B - C / D
+      };
+    }
+
+    function clockSvg(hour, minute, showHands) {
+      const cx = 75, cy = 75, r = 60;
+      let marks = "";
+      for (let i = 1; i <= 12; i++) {
+        const ang = (Math.PI * 2 * i) / 12 - Math.PI / 2;
+        const x = cx + (r - 11) * Math.cos(ang), y = cy + (r - 11) * Math.sin(ang);
+        marks += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="12">${i}</text>`;
+      }
+      let hands = "";
+      if (showHands) {
+        const minAng = (Math.PI * 2 * minute) / 60 - Math.PI / 2;
+        const hrAng = (Math.PI * 2 * ((hour % 12) + minute / 60)) / 12 - Math.PI / 2;
+        hands = `<line x1="${cx}" y1="${cy}" x2="${cx + 42 * Math.cos(hrAng)}" y2="${cy + 42 * Math.sin(hrAng)}" stroke="#111" stroke-width="4"/>` +
+                `<line x1="${cx}" y1="${cy}" x2="${cx + 52 * Math.cos(minAng)}" y2="${cy + 52 * Math.sin(minAng)}" stroke="#111" stroke-width="2"/>`;
+      }
+      return `<svg width="150" height="150" viewBox="0 0 150 150"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#111" stroke-width="2"/>${marks}${hands}<circle cx="${cx}" cy="${cy}" r="4" fill="#111"/></svg>`;
+    }
+
+    function generateTime() {
+      const hour = randInt(1, 12);
+      const minute = pick([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
+      const askRead = state.rng() > 0.45;
+      if (askRead) {
+        return {
+          type: "I",
+          questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, true)}<div style="font-size:36px">__ : __</div></div>`,
+          answer: `${pad2(hour)}:${pad2(minute)}`
+        };
+      }
+      return {
+        type: "I",
+        questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, false)}<div style="font-size:32px">Нарисуй стрелки: ${pad2(hour)}:${pad2(minute)}</div></div>`,
+        answer: `${pad2(hour)}:${pad2(minute)}`
+      };
+    }
+
+    function generateTaskByType(type, settings) {
+      if (type === "A") return generateAddition(settings);
+      if (type === "B") return generateDivision(settings);
+      if (type === "C") return generateCompare(settings);
+      if (type === "D") return generateMeasures(settings);
+      if (type === "E") return generateGeometry(settings);
+      if (type === "F") return generateFractions(settings);
+      if (type === "G") return generateEquation(settings);
+      if (type === "H") return generateWordProblem(settings);
+      return generateTime(settings);
+    }
+
+    // Главный рендер листа (6 строк x 3 столбца)
+    function renderWorksheet(settings) {
+      const worksheet = document.getElementById("worksheet");
+      worksheet.innerHTML = "";
+
+      const allTasks = [];
+
+      DAYS.forEach((day) => {
+        const dayLabel = document.createElement("div");
+        dayLabel.className = "day-label";
+        dayLabel.textContent = day;
+        worksheet.appendChild(dayLabel);
+
+        for (let col = 1; col <= 3; col++) {
+          const type = pick(settings.enabledTypes);
+          const task = generateTaskByType(type, settings);
+          allTasks.push({ day, col, ...task });
+
+          const title = TASK_TYPES.find((t) => t.key === task.type)?.title || task.type;
+          const cell = document.createElement("article");
+          cell.className = "task-cell";
+          cell.innerHTML = `
+            <div class="task-number">${col}</div>
+            <div class="task-title">${title}</div>
+            <div class="question">${task.questionHTML}</div>
+            <div class="answer"><strong>Ответ:</strong> ${task.answer}</div>
+          `;
+          worksheet.appendChild(cell);
+        }
+      });
+
+      state.worksheetData = { settings, tasks: allTasks };
+      document.body.classList.toggle("show-answers", state.showAnswers);
+    }
+
+    function buildTypeToggles() {
+      const holder = document.getElementById("typeToggles");
+      TASK_TYPES.forEach((type) => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input checked class="type-toggle" type="checkbox" value="${type.key}"/> ${type.key}. ${type.title}`;
+        holder.appendChild(label);
+      });
+    }
+
+    function saveJsonTemplate() {
+      if (!state.worksheetData) return;
+      const blob = new Blob([JSON.stringify(state.worksheetData, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `worksheet-${state.worksheetData.settings.seed}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function generateAndRender() {
+      const settings = getSettings();
+      state.rng = seededRandom(settings.seed);
+      renderWorksheet(settings);
+    }
+
+    function init() {
+      buildTypeToggles();
+      document.getElementById("seedInput").value = Math.floor(Math.random() * 1000000);
+
+      document.getElementById("generateBtn").addEventListener("click", () => {
+        document.getElementById("seedInput").value = Math.floor(Math.random() * 1000000);
+        generateAndRender();
+      });
+
+      document.getElementById("answersBtn").addEventListener("click", () => {
+        state.showAnswers = !state.showAnswers;
+        document.body.classList.toggle("show-answers", state.showAnswers);
+        document.getElementById("answersBtn").textContent = state.showAnswers ? "Скрыть ответы" : "Показать ответы";
+      });
+
+      document.getElementById("printBtn").addEventListener("click", () => window.print());
+      document.getElementById("saveJsonBtn").addEventListener("click", saveJsonTemplate);
+
+      generateAndRender();
+    }
+
+    init();
+  </script>
+</body>
+</html>
