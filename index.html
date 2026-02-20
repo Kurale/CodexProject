@@ -215,7 +215,13 @@
 
     .clock-wrap,
     .fraction-wrap,
-    .geometry-wrap { display: inline-flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+    .geometry-wrap {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
 
     .examples-horizontal {
       display: flex;
@@ -225,6 +231,11 @@
     }
 
     .examples-horizontal .example-line { margin: 0; }
+
+    .examples-horizontal.two-per-row .example-line {
+      width: calc(50% - 2px);
+      box-sizing: border-box;
+    }
 
     svg { max-width: 100%; height: auto; }
 
@@ -365,7 +376,8 @@
       }
       const lineClass = options.wrap ? "example-line can-wrap" : "example-line";
       const lines = examples.map((item, idx) => `<div class="${lineClass}"><span class="example-index">${idx + 1})</span>${item.questionHTML}</div>`).join("");
-      const questionHTML = options.horizontal ? `<div class="examples-horizontal">${lines}</div>` : lines;
+      const containerClass = options.twoPerRow ? "examples-horizontal two-per-row" : "examples-horizontal";
+      const questionHTML = options.horizontal ? `<div class="${containerClass}">${lines}</div>` : lines;
       return {
         type,
         questionHTML,
@@ -473,10 +485,10 @@
         }
         const askPerimeter = state.rng() > 0.5;
         return {
-          questionHTML: `<div class="geometry-wrap">${geometrySvg(cells)}<div style="font-size:17px">${askPerimeter ? "Периметр" : "Площадь"} = ___</div></div>`,
+          questionHTML: `<div class="geometry-wrap">${geometrySvg(cells)}<div style="font-size:16px">${askPerimeter ? "Периметр" : "Площадь"} = ___</div></div>`,
           answer: askPerimeter ? `${perimeter} см` : `${area} см²`
         };
-      }, { horizontal: true });
+      }, { horizontal: true, twoPerRow: true });
     }
 
     function fractionSvg(parts, shaded) {
@@ -498,10 +510,10 @@
         const parts = pick([3,4,5,6,8,10,12]);
         const shaded = randInt(1, parts - 1);
         return {
-          questionHTML: `<div class="fraction-wrap">${fractionSvg(parts, shaded)}<div style="font-size:18px">= ___</div></div>`,
+          questionHTML: `<div class="fraction-wrap">${fractionSvg(parts, shaded)}<div style="font-size:16px">= ___</div></div>`,
           answer: `${shaded}/${parts}`
         };
-      }, { horizontal: true });
+      }, { horizontal: true, twoPerRow: true });
     }
 
     function generateEquation(settings) {
@@ -568,15 +580,15 @@
         const askRead = state.rng() > 0.45;
         if (askRead) {
           return {
-            questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, true)}<div style="font-size:19px">__ : __</div></div>`,
+            questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, true)}<div style="font-size:16px">__ : __</div></div>`,
             answer: `${pad2(hour)}:${pad2(minute)}`
           };
         }
         return {
-          questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, false)}<div style="font-size:17px">Нарисуй стрелки: ${pad2(hour)}:${pad2(minute)}</div></div>`,
+          questionHTML: `<div class="clock-wrap">${clockSvg(hour, minute, false)}<div style="font-size:16px">${pad2(hour)}:${pad2(minute)}</div></div>`,
           answer: `${pad2(hour)}:${pad2(minute)}`
         };
-      }, { horizontal: true });
+      }, { horizontal: true, twoPerRow: true });
     }
 
     function generateTaskByType(type, settings) {
