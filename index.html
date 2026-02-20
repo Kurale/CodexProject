@@ -396,9 +396,18 @@
         const digits = randInt(2, Math.min(4, settings.difficulty + 1));
         const min = Math.max(settings.range.min, 10 ** (digits - 1));
         const max = Math.min(settings.range.max, 10 ** digits - 1);
-        const a = randInt(min, max);
-        const b = randInt(min, max);
+        let a = randInt(min, max);
+        let b = randInt(min, max);
         const op = pick(["+", "−"]);
+        if (op === "−") {
+          if (max - min >= 1) {
+            b = randInt(min, max - 1);
+            a = randInt(b + 1, max);
+          } else {
+            a = max + 1;
+            b = max;
+          }
+        }
         const answer = op === "+" ? a + b : a - b;
         return {
           questionHTML: `<span style="font-size:18px;letter-spacing:0.5px">${a} ${op} ${b} = ___</span>`,
@@ -541,10 +550,14 @@
     function generateWordProblem(settings) {
       return buildMultiExampleTask("H", examplesCountForType("H", settings), () => {
         if (state.rng() > 0.5) {
-          const A = randInt(20, 90), B = randInt(20, 90), k = pick([2,3,4,5]);
+          const k = pick([2,3,4,5]);
+          const base = randInt(8, 50);
+          const sum = base * k;
+          const A = randInt(10, sum - 10);
+          const B = sum - A;
           return {
             questionHTML: `Сумму ${A} и ${B} уменьшить в ${k} раз.`,
-            answer: (A + B) / k
+            answer: sum / k
           };
         }
         const A = randInt(6, 20), B = randInt(6, 20), D = pick([2,3,4,5,6]), q = randInt(2, 8);
