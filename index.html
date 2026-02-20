@@ -386,6 +386,7 @@
     }
 
     function examplesCountForType(type, settings) {
+      if (["E", "F", "I"].includes(type)) return 2;
       return settings.examplesPerTask;
     }
 
