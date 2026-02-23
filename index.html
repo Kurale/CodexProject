@@ -94,6 +94,11 @@
       animation: fadeIn .25s ease;
     }
 
+    .no-dim-layer {
+      background: transparent;
+      animation: fadeIn .2s ease;
+    }
+
     .slide-up {
       animation: slideUp .28s ease;
     }
@@ -618,13 +623,14 @@
       if (state.modal !== 'step') return '';
       const editMode = state.editingStepIndex !== null;
       return `
-      <div class="fixed inset-0 z-50 modal-backdrop flex items-end sm:items-center justify-center p-3">
-        <div class="slide-up w-full max-w-2xl rounded-4xl bg-white p-5 sm:p-7 shadow-2xl space-y-4">
+      <div class="fixed inset-x-0 bottom-0 z-50 no-dim-layer p-2 sm:p-4 pointer-events-none">
+        <div class="slide-up pointer-events-auto w-full max-w-2xl mx-auto rounded-t-4xl sm:rounded-4xl bg-white p-4 sm:p-6 shadow-2xl space-y-3 border-4 border-green-200 max-h-[54vh] overflow-y-auto">
           <div class="flex items-center justify-between">
             <h4 class="text-3xl sm:text-4xl font-black text-green-700">${editMode ? 'Изменить шаг' : 'Новый шаг'}</h4>
             <button data-action="close-modal" class="text-4xl">✖️</button>
           </div>
-          <textarea id="stepTextarea" data-role="step-input" class="w-full rounded-3xl border-4 border-green-200 min-h-[180px] text-2xl p-4 font-bold focus:outline-none focus:ring-4 focus:ring-green-300" placeholder="Например: 45 × 3 = 135">${state.stepDraft}</textarea>
+          <p class="text-lg sm:text-xl font-bold text-slate-600">Окно внизу, чтобы условие задачи всегда оставалось видно 👀</p>
+          <textarea id="stepTextarea" data-role="step-input" class="w-full rounded-3xl border-4 border-green-200 min-h-[150px] text-2xl p-4 font-bold focus:outline-none focus:ring-4 focus:ring-green-300" placeholder="Например: 45 × 3 = 135">${state.stepDraft}</textarea>
           <p class="text-xl font-bold text-slate-600">Можно писать любые пояснения рядом с вычислением.</p>
           <button data-action="save-step" class="btn-glossy w-full min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-5 py-4 shadow-glossy">Сохранить шаг</button>
         </div>
