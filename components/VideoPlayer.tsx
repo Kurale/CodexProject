@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Expand, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatTime } from '@/lib/utils';
@@ -12,7 +12,10 @@ interface VideoPlayerProps {
   onLoadedMetadata?: (duration: number) => void;
 }
 
-export function VideoPlayer({ src, markers = [], onTimeUpdate, onLoadedMetadata }: VideoPlayerProps) {
+export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(function VideoPlayer(
+  { src, markers = [], onTimeUpdate, onLoadedMetadata },
+  ref
+) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -20,10 +23,19 @@ export function VideoPlayer({ src, markers = [], onTimeUpdate, onLoadedMetadata 
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState(1);
 
+  useImperativeHandle(ref, () => videoRef.current as HTMLVideoElement, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!videoRef.current) return;
+      const target = e.target as HTMLElement | null;
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+
       if (e.code === 'Space') {
+        if (isTypingTarget) return;
         e.preventDefault();
         if (videoRef.current.paused) {
           videoRef.current.play();
@@ -127,4 +139,4 @@ export function VideoPlayer({ src, markers = [], onTimeUpdate, onLoadedMetadata 
       </div>
     </div>
   );
-}
+});
