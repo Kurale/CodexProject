@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Interaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,12 +34,32 @@ export function QuestionOverlay({
 }) {
   const [value, setValue] = useState<AnswerValue>(interaction.type === 'multiple' ? [] : '');
   const [checked, setChecked] = useState<boolean | null>(null);
+  const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canSubmit = useMemo(() => {
     if (interaction.type === 'text') return String(value).trim().length > 0;
     if (interaction.type === 'multiple') return (value as string[]).length > 0;
     return String(value).length > 0;
   }, [interaction.type, value]);
+
+  useEffect(() => {
+    if (!interaction.duration || checked !== null) return;
+
+    const timeoutId = setTimeout(() => {
+      setChecked(false);
+      completeTimeoutRef.current = setTimeout(() => onComplete({ correct: false }), 800);
+    }, interaction.duration * 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [interaction.duration, checked, onComplete]);
+
+  useEffect(() => {
+    return () => {
+      if (completeTimeoutRef.current) {
+        clearTimeout(completeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-4">
@@ -92,7 +112,6 @@ export function QuestionOverlay({
             <Button
               disabled={!canSubmit}
               onClick={() => {
-                // Проверка ответа выполняется синхронно для мгновенного фидбэка.
                 const result = isCorrect(interaction, value);
                 setChecked(result);
               }}

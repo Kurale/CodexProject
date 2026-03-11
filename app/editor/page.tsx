@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { nanoid } from 'nanoid';
 import { Interaction, Project } from '@/lib/types';
@@ -45,24 +45,33 @@ export default function EditorPage() {
   const [activePreview, setActivePreview] = useState<Interaction | null>(null);
   const [previewQueue, setPreviewQueue] = useState<string[]>([]);
   const [errors, setErrors] = useState<string>('');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [isLoaded, setIsLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const id = params.get('id');
-    if (!id) return;
+    if (!id) {
+      setIsLoaded(true);
+      return;
+    }
+
     fetch(`/api/projects?id=${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.project) setProject(data.project);
-      });
+      })
+      .finally(() => setIsLoaded(true));
   }, [params]);
 
   useEffect(() => {
-    if (!project.videoUrl) return;
+    if (!isLoaded || !project.videoUrl) return;
+
     const timeout = setTimeout(() => {
       saveProject();
-    }, 1200);
+    }, 600);
     return () => clearTimeout(timeout);
-  }, [project]);
+  }, [project.title, project.videoUrl, project.interactions, isLoaded]);
 
   const sortedInteractions = useMemo(
     () => [...project.interactions].sort((a, b) => a.time - b.time),
@@ -80,13 +89,22 @@ export default function EditorPage() {
   };
 
   const saveProject = async () => {
+    if (!project.videoUrl) return;
+
+    setSaveState('saving');
     const response = await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...project, updatedAt: new Date().toISOString() })
     });
-    const data = await response.json();
-    if (data.project) setProject(data.project);
+
+    if (!response.ok) {
+      setSaveState('error');
+      return;
+    }
+
+    setSaveState('saved');
+    setTimeout(() => setSaveState('idle'), 1000);
   };
 
   const uploadVideo = async (file: File) => {
@@ -100,14 +118,16 @@ export default function EditorPage() {
 
   const onPreviewTime = (time: number) => {
     setCurrentTime(time);
-    if (!preview) return;
+    if (!preview || activePreview) return;
 
-    // Основная логика: ловим ближайшую неотработанную интеракцию с допуском ~0.35 сек.
     const trigger = sortedInteractions.find(
       (item) => !previewQueue.includes(item.id) && Math.abs(item.time - time) <= 0.35
     );
 
     if (trigger) {
+      if (trigger.pauseUntilAnswered) {
+        videoRef.current?.pause();
+      }
       setPreviewQueue((prev) => [...prev, trigger.id]);
       setActivePreview(trigger);
     }
@@ -125,11 +145,9 @@ export default function EditorPage() {
             <div>
               <label className="mb-1 block text-sm text-slate-300">Видео URL (YouTube/Vimeo/MP4)</label>
               <Input
+                value={project.sourceType === 'url' ? project.videoUrl : ''}
                 placeholder="https://..."
-                onBlur={(e) => {
-                  if (!e.target.value) return;
-                  setProject({ ...project, sourceType: 'url', videoUrl: e.target.value });
-                }}
+                onChange={(e) => setProject({ ...project, sourceType: 'url', videoUrl: e.target.value })}
               />
             </div>
           </div>
@@ -143,6 +161,7 @@ export default function EditorPage() {
         {project.videoUrl && !isEmbeddableVideo(project.videoUrl) && (
           <div className="relative">
             <VideoPlayer
+              ref={videoRef}
               src={project.videoUrl}
               markers={sortedInteractions.map((x) => x.time)}
               onLoadedMetadata={setDuration}
@@ -153,6 +172,7 @@ export default function EditorPage() {
                 interaction={activePreview}
                 onComplete={() => {
                   setActivePreview(null);
+                  videoRef.current?.play();
                 }}
               />
             )}
@@ -171,7 +191,12 @@ export default function EditorPage() {
         <Timeline
           duration={duration || 1}
           interactions={sortedInteractions}
-          onSeek={(time) => setCurrentTime(time)}
+          onSeek={(time) => {
+            setCurrentTime(time);
+            if (videoRef.current) {
+              videoRef.current.currentTime = time;
+            }
+          }}
           onSelect={(id) => setEditing(project.interactions.find((x) => x.id === id) || null)}
         />
       </div>
@@ -179,13 +204,25 @@ export default function EditorPage() {
       <div className="space-y-4">
         <Card className="space-y-2">
           <Button onClick={() => setEditing(blankInteraction(currentTime))}>Добавить взаимодействие @ {currentTime.toFixed(1)}s</Button>
-          <Button variant="secondary" onClick={() => setPreview((p) => !p)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setPreview((p) => !p);
+              setPreviewQueue([]);
+              setActivePreview(null);
+            }}
+          >
             {preview ? 'Остановить предпросмотр' : 'Предпросмотр'}
           </Button>
           <Button variant="ghost" onClick={saveProject}>
             Сохранить проект
           </Button>
           <p className="text-xs text-slate-400">Ссылка просмотра: /view/{project.id}</p>
+          <p className="text-xs text-cyan-300">
+            {saveState === 'saving' && 'Сохранение...'}
+            {saveState === 'saved' && 'Проект сохранён'}
+            {saveState === 'error' && 'Ошибка сохранения'}
+          </p>
         </Card>
 
         {editing && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Project } from '@/lib/types';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { QuestionOverlay } from '@/components/QuestionOverlay';
@@ -12,6 +12,7 @@ export function ViewPlayer({ project }: { project: Project }) {
   const [handled, setHandled] = useState<string[]>([]);
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const sorted = useMemo(() => [...project.interactions].sort((a, b) => a.time - b.time), [project.interactions]);
   const active = sorted.find((x) => x.id === activeId) || null;
@@ -20,11 +21,15 @@ export function ViewPlayer({ project }: { project: Project }) {
     <div className="space-y-4">
       <div className="relative">
         <VideoPlayer
+          ref={videoRef}
           src={project.videoUrl}
           onTimeUpdate={(time, duration) => {
-            if (done) return;
+            if (done || activeId) return;
             const trigger = sorted.find((item) => !handled.includes(item.id) && Math.abs(item.time - time) <= 0.35);
             if (trigger) {
+              if (trigger.pauseUntilAnswered) {
+                videoRef.current?.pause();
+              }
               setActiveId(trigger.id);
               setHandled((prev) => [...prev, trigger.id]);
             }
@@ -38,6 +43,7 @@ export function ViewPlayer({ project }: { project: Project }) {
             onComplete={({ correct }) => {
               if (correct) setScore((s) => s + 1);
               setActiveId(null);
+              videoRef.current?.play();
             }}
           />
         )}
