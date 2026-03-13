@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Математика Аркада</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            duoGreen: '#22C55E',
+            duoYellow: '#FACC15',
+            duoBlue: '#60A5FA',
+            duoPink: '#F472B6'
+          },
+          borderRadius: {
+            '4xl': '2rem'
+          },
+          boxShadow: {
+            glossy: '0 12px 0 rgba(21,128,61,0.28), 0 20px 30px rgba(34,197,94,0.35)',
+            card: '0 10px 25px rgba(15,23,42,0.18)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --duo-green: #22C55E;
+      --duo-yellow: #FACC15;
+    }
+
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(circle at 10% 20%, #dcfce7 0%, #bbf7d0 45%, #86efac 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .screen {
+      animation: fadeSlide .45s ease;
+    }
+
+    .glass-card {
+      background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.82));
+      backdrop-filter: blur(2px);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .16);
+    }
+
+    .btn-glossy {
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .btn-glossy::before {
+      content: '';
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 6px;
+      height: 44%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+
+    .btn-glossy:hover,
+    .btn-glossy:focus-visible {
+      transform: translateY(-2px) scale(1.01);
+      filter: brightness(1.04);
+    }
+
+    .btn-glossy:active {
+      transform: translateY(2px) scale(.99);
+    }
+
+    .card-pop {
+      animation: popIn .3s ease;
+    }
+
+    .bounce-slow {
+      animation: bounceSoft 1.9s infinite;
+    }
+
+    .star-pop {
+      animation: starBurst .65s ease;
+    }
+
+    .modal-backdrop {
+      background: rgba(3, 7, 18, .55);
+      animation: fadeIn .25s ease;
+    }
+
+    .no-dim-layer {
+      background: transparent;
+      animation: fadeIn .2s ease;
+    }
+
+    .slide-up {
+      animation: slideUp .28s ease;
+    }
+
+    .progress-bubble {
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      from { opacity: .5; transform: scale(.93); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes bounceSoft {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes starBurst {
+      0% { transform: scale(.3) rotate(-15deg); opacity: .2; }
+      70% { transform: scale(1.18) rotate(12deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px) scale(.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 rgba(250,204,21,0); }
+      50% { box-shadow: 0 0 22px rgba(250,204,21,.7); }
+    }
+  </style>
+</head>
+<body class="text-slate-800">
+  <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-[70]"></canvas>
+  <main class="max-w-4xl mx-auto px-3 sm:px-5 py-4 sm:py-7">
+    <div id="app"></div>
+  </main>
+
+  <script>
+    // ---------------------------------------
+    // ДАННЫЕ ЗАДАЧ: 12 заданий, 2 темы по 6
+    // ---------------------------------------
+    const defaultTasks = [
+      { id: 1, topic: 'Цена, количество, стоимость', problem: 'Яблоки стоят 35 рублей за килограмм. Мама купила 4 килограмма. Сколько стоит покупка?', correctAnswer: 140 },
+      { id: 2, topic: 'Цена, количество, стоимость', problem: 'Карандаши стоят 18 рублей за штуку. Купили 5 карандашей. Сколько заплатили?', correctAnswer: 90 },
+      { id: 3, topic: 'Цена, количество, стоимость', problem: 'Один пакет молока стоит 62 рубля. Купили 3 пакета. Сколько всего?', correctAnswer: 186 },
+      { id: 4, topic: 'Цена, количество, стоимость', problem: 'Булочки по 25 рублей. Купили 6 штук. Сколько стоит?', correctAnswer: 150 },
+      { id: 5, topic: 'Цена, количество, стоимость', problem: 'Тетради по 45 рублей. Нужно 2 тетради. Сколько заплатим?', correctAnswer: 90 },
+      { id: 11, topic: 'Цена, количество, стоимость', problem: 'Книга стоит 120 рублей, а ручка — 30 рублей. Купили 2 книги и 3 ручки. Сколько заплатили всего?', correctAnswer: 330 },
+      { id: 6, topic: 'Время, скорость, расстояние', problem: 'Машина едет со скоростью 60 км/ч. Сколько времени нужно, чтобы проехать 180 км?', correctAnswer: 3 },
+      { id: 7, topic: 'Время, скорость, расстояние', problem: 'Велосипедист проехал 45 км за 3 часа. С какой скоростью он ехал?', correctAnswer: 15 },
+      { id: 8, topic: 'Время, скорость, расстояние', problem: 'Поезд проехал 240 км за 4 часа. С какой скоростью он ехал?', correctAnswer: 60 },
+      { id: 9, topic: 'Время, скорость, расстояние', problem: 'Самолёт летит 900 км со скоростью 180 км/ч. Сколько времени он летит?', correctAnswer: 5 },
+      { id: 10, topic: 'Время, скорость, расстояние', problem: 'Автобус проехал 120 км за 2 часа. Сколько километров он проезжает за час?', correctAnswer: 60 },
+      { id: 12, topic: 'Время, скорость, расстояние', problem: 'Пешеход шёл 2 часа со скоростью 4 км/ч, потом ещё 1 час со скоростью 5 км/ч. Какое расстояние он прошёл всего?', correctAnswer: 13 },
+    ];
+
+    const defaultTopicNames = ['Цена, количество, стоимость', 'Время, скорость, расстояние'];
+
+    const achievementCatalog = [
+      { key: 'first_star', title: 'Первая звезда', text: 'Ты получил(а) первую звезду! 🌟' },
+      { key: 'three_stars_once', title: 'Тройной блеск', text: 'Получены 3 звезды за задание! ⭐⭐⭐' },
+      { key: 'topic_shop_done', title: 'Хозяин магазина', text: 'Завершена тема про покупки! 🛍️' },
+      { key: 'topic_speed_done', title: 'Король скорости', text: 'Завершена тема про скорость! 🚀' },
+      { key: 'all_topics_done', title: 'Мастер умножения', text: 'Обе темы пройдены! 👑' },
+      { key: 'ten_tasks_done', title: 'Герой Аркады', text: 'Решены все задания! 🏆' },
+    ];
+
+    const defaultState = {
+      view: 'home',
+      selectedTopic: null,
+      currentTaskIndex: 0,
+      stepDraft: '',
+      editingStepIndex: null,
+      answerDraft: '',
+      currentTaskSteps: [],
+      currentAnswer: '',
+      currentCheck: null,
+      modal: null,
+      keypadValue: ''
+    };
+
+    let state = { ...defaultState };
+
+    const storageKey = 'math_arcade_progress_v2';
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return { taskResults: {}, xp: 0, achievements: {}, customTasks: null };
+        const parsed = JSON.parse(raw);
+        return {
+          taskResults: parsed.taskResults || {},
+          xp: parsed.xp || 0,
+          achievements: parsed.achievements || {},
+          customTasks: Array.isArray(parsed.customTasks) ? parsed.customTasks : null
+        };
+      } catch {
+        return { taskResults: {}, xp: 0, achievements: {}, customTasks: null };
+      }
+    }
+
+    let progress = loadProgress();
+
+    function saveProgress() {
+      localStorage.setItem(storageKey, JSON.stringify(progress));
+    }
+
+    function getTasks() {
+      return Array.isArray(progress.customTasks) && progress.customTasks.length ? progress.customTasks : defaultTasks;
+    }
+
+
+    function getTopicNames() {
+      const names = [...new Set(getTasks().map(t => t.topic))];
+      return names.length ? names : defaultTopicNames;
+    }
+
+    function topicTasks(topic) {
+      return getTasks().filter(t => t.topic === topic);
+    }
+
+    function getCurrentTask() {
+      const topicList = topicTasks(state.selectedTopic);
+      return topicList[state.currentTaskIndex];
+    }
+
+    function unlockAchievements() {
+      const results = Object.values(progress.taskResults);
+      if (results.some(r => r.stars >= 1)) progress.achievements.first_star = true;
+      if (results.some(r => r.stars === 3)) progress.achievements.three_stars_once = true;
+
+      const topics = getTopicNames();
+      const shopDone = topics[0] ? topicTasks(topics[0]).every(t => progress.taskResults[t.id]) : false;
+      const speedDone = topics[1] ? topicTasks(topics[1]).every(t => progress.taskResults[t.id]) : false;
+      if (shopDone) progress.achievements.topic_shop_done = true;
+      if (speedDone) progress.achievements.topic_speed_done = true;
+      if (shopDone && speedDone) progress.achievements.all_topics_done = true;
+      if (Object.keys(progress.taskResults).length >= getTasks().length) progress.achievements.ten_tasks_done = true;
+      saveProgress();
+    }
+
+    function importTasksFromJson(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result));
+          if (!Array.isArray(parsed)) throw new Error('JSON должен быть массивом задач.');
+          const valid = parsed.every(item => item && typeof item.id === 'number' && typeof item.topic === 'string' && typeof item.problem === 'string' && typeof item.correctAnswer === 'number');
+          if (!valid) throw new Error('У каждой задачи нужны поля: id, topic, problem, correctAnswer.');
+
+          progress.customTasks = parsed;
+          progress.taskResults = {};
+          progress.achievements = {};
+          state.selectedTopic = null;
+          state.currentTaskIndex = 0;
+          state.view = 'topics';
+          resetForTask();
+          saveProgress();
+          render();
+          alert('Новые задачи загружены из JSON! 🎉');
+        } catch (err) {
+          alert(`Не удалось загрузить JSON: ${err.message}`);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // ----------------------------------------------------------
+    // ВАЖНО: Проверка шага и финального ответа по строгим правилам
+    // ----------------------------------------------------------
+    function sanitizeMathExpression(text) {
+      // Разрешаем разные варианты умножения от детей:
+      // * (звёздочка), x (англ), х (рус), × и ⋅ (знак/точка умножения).
+      const normalized = String(text || '')
+        .replace(/[xх×⋅•]/gi, '*');
+      return normalized.replace(/[^0-9.+\-*/()\s]/g, '').trim();
+    }
+
+    function evaluateStep(stepText) {
+      const eqPos = stepText.lastIndexOf('=');
+      if (eqPos === -1) return { valid: false, reason: 'Нет знака =', left: '', right: '' };
+
+      const leftRaw = stepText.slice(0, eqPos);
+      const rightRaw = stepText.slice(eqPos + 1);
+      const left = sanitizeMathExpression(leftRaw);
+      const right = sanitizeMathExpression(rightRaw);
+
+      if (!left || !right) return { valid: false, reason: 'Пустая часть', left, right };
+
+      const rightNum = parseFloat(right);
+      if (Number.isNaN(rightNum)) return { valid: false, reason: 'Правая часть не число', left, right };
+
+      try {
+        // Безопасное вычисление выражения в левой части.
+        // Перед запуском мы уже убрали все символы, кроме математических.
+        const leftVal = new Function(`return (${left})`)();
+        const valid = Number(leftVal) === rightNum;
+        return { valid, left, right, leftVal, rightNum };
+      } catch {
+        return { valid: false, reason: 'Ошибка вычисления', left, right };
+      }
+    }
+
+    function parseFinalAnswer(text) {
+      const match = String(text || '').match(/-?\d+(?:\.\d+)?/);
+      return match ? parseFloat(match[0]) : NaN;
+    }
+
+    function runCheck() {
+      const task = getCurrentTask();
+      const finalNum = parseFinalAnswer(state.currentAnswer);
+      const answerCorrect = !Number.isNaN(finalNum) && finalNum === task.correctAnswer;
+
+      const stepChecks = state.currentTaskSteps.map(step => evaluateStep(step.text));
+      const invalidCount = stepChecks.filter(s => !s.valid).length;
+
+      let stars = 0;
+      if (answerCorrect) {
+        if (invalidCount === 0) stars = 3;
+        else if (invalidCount === 1) stars = 2;
+        else stars = 1;
+      }
+
+      const messages = {
+        0: 'Молодец, но давай ещё раз! Попробуй пересчитать 💪',
+        1: 'Почти получилось! Ответ верный, но шаги нужно улучшить 🙂',
+        2: 'Очень хорошо! Остался один маленький неточный шаг 🌟',
+        3: 'Супер! Всё верно! Ты настоящий математический герой! 🚀'
+      };
+
+      state.currentCheck = { answerCorrect, stepChecks, invalidCount, stars, message: messages[stars] };
+      if (stars > 0) {
+        progress.taskResults[task.id] = {
+          stars,
+          answer: finalNum,
+          time: Date.now(),
+          topic: task.topic
+        };
+        progress.xp += 10 + stars * 5;
+        unlockAchievements();
+        if (stars === 3) launchConfetti();
+      }
+      saveProgress();
+      render();
+    }
+
+    function resetForTask() {
+      state.currentTaskSteps = [];
+      state.currentAnswer = '';
+      state.currentCheck = null;
+      state.keypadValue = '';
+      state.modal = null;
+      state.editingStepIndex = null;
+      state.stepDraft = '';
+    }
+
+    function openStepModal(index = null) {
+      state.modal = 'step';
+      state.editingStepIndex = index;
+      state.stepDraft = index === null ? '' : state.currentTaskSteps[index].text;
+      render();
+      setTimeout(() => document.getElementById('stepTextarea')?.focus(), 30);
+    }
+
+    function saveStep() {
+      const value = state.stepDraft.trim();
+      if (!value) return;
+      if (state.editingStepIndex === null) {
+        state.currentTaskSteps.push({ text: value });
+      } else {
+        state.currentTaskSteps[state.editingStepIndex].text = value;
+      }
+      state.modal = null;
+      state.editingStepIndex = null;
+      state.stepDraft = '';
+      state.currentCheck = null;
+      render();
+    }
+
+    function openAnswerModal() {
+      state.modal = 'answer';
+      state.keypadValue = state.currentAnswer || '';
+      render();
+    }
+
+    function saveAnswer() {
+      if (!state.keypadValue) return;
+      state.currentAnswer = state.keypadValue;
+      state.modal = null;
+      render();
+      runCheck();
+    }
+
+    function keypadPress(key) {
+      if (key === 'clear') state.keypadValue = '';
+      else if (key === 'back') state.keypadValue = state.keypadValue.slice(0, -1);
+      else if (key === '.' && state.keypadValue.includes('.')) return;
+      else state.keypadValue += key;
+      render();
+    }
+
+    function nextTask() {
+      const list = topicTasks(state.selectedTopic);
+      if (state.currentTaskIndex < list.length - 1) {
+        state.currentTaskIndex += 1;
+        resetForTask();
+        state.view = 'task';
+      } else {
+        state.view = 'lessonComplete';
+      }
+      render();
+    }
+
+    function totalStarsForTopic(topic) {
+      return topicTasks(topic).reduce((sum, t) => sum + (progress.taskResults[t.id]?.stars || 0), 0);
+    }
+
+    function topicCompleted(topic) {
+      return topicTasks(topic).every(t => !!progress.taskResults[t.id]);
+    }
+
+    function starsHtml(count, animate = false) {
+      return `<div class="flex gap-2 text-4xl sm:text-5xl">${[1,2,3].map(i => `<span class="${i<=count?'':'opacity-30'} ${animate ? 'star-pop' : ''}">⭐</span>`).join('')}</div>`;
+    }
+
+    function mascot() {
+      return `
+        <div class="relative w-40 h-40 sm:w-56 sm:h-56 mx-auto bounce-slow">
+          <div class="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-200 via-orange-200 to-orange-300 shadow-card"></div>
+          <div class="absolute left-10 top-8 w-8 h-8 bg-white rounded-full"></div>
+          <div class="absolute right-10 top-8 w-8 h-8 bg-white rounded-full"></div>
+          <div class="absolute left-[2.95rem] top-[2.45rem] w-3 h-3 bg-slate-900 rounded-full"></div>
+          <div class="absolute right-[2.95rem] top-[2.45rem] w-3 h-3 bg-slate-900 rounded-full"></div>
+          <div class="absolute inset-x-0 top-20 text-center text-6xl">🦊</div>
+          <div class="absolute -top-3 -right-4 text-4xl">✨</div>
+        </div>
+      `;
+    }
+
+    function viewHome() {
+      return `
+      <section class="screen text-center space-y-6">
+        ${mascot()}
+        <h1 class="text-5xl sm:text-6xl font-black text-green-700 drop-shadow">Математика Аркада</h1>
+        <p class="text-2xl sm:text-3xl font-bold text-green-800">Играй, думай, получай звёзды!</p>
+
+        <div class="grid gap-4 max-w-xl mx-auto">
+          <button data-action="go-topics" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-6 py-4 shadow-glossy">Выбрать тему</button>
+          <button data-action="go-achievements" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-500 text-amber-900 px-6 py-4 shadow-card">Мои достижения</button>
+          <button data-action="go-how" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-sky-300 to-sky-500 text-white px-6 py-4 shadow-card">Как играть</button>
+        </div>
+
+        <div class="glass-card rounded-3xl p-4 text-2xl font-bold max-w-2xl mx-auto">
+          XP: <span class="text-green-700">${progress.xp}</span>
+        </div>
+      </section>`;
+    }
+
+    function viewHow() {
+      return `
+      <section class="screen space-y-5">
+        <button data-action="home" class="text-2xl font-black">⬅️ Назад</button>
+        <h2 class="text-5xl font-black text-center text-green-700">Как играть</h2>
+        <div class="glass-card rounded-3xl p-6 text-2xl leading-relaxed font-bold space-y-3">
+          <p>1) Прочитай задачу.</p>
+          <p>2) Нажми <span class="text-green-700">+ Добавить шаг</span> и запиши решение.</p>
+          <p>3) Нажми <span class="text-green-700">Ввести ответ</span> и введи число.</p>
+          <p>4) Получи от 1 до 3 звёзд! Чем точнее шаги, тем больше звёзд ⭐</p>
+        </div>
+      </section>`;
+    }
+
+    function viewTopics() {
+      return `
+      <section class="screen space-y-5">
+        <div class="flex justify-between items-center">
+          <button data-action="home" class="text-2xl font-black">⬅️ Домой</button>
+          <div class="text-2xl font-black bg-yellow-200 rounded-full px-4 py-2">XP: ${progress.xp}</div>
+        </div>
+        <h2 class="text-5xl font-black text-center text-green-700">Выбери тему</h2>
+        <div class="glass-card rounded-3xl p-4 sm:p-5">
+          <p class="text-xl sm:text-2xl font-black mb-3">Хочешь свои условия задач? Загрузи JSON-файл 👇</p>
+          <label class="btn-glossy inline-flex items-center justify-center min-h-14 text-2xl font-black rounded-3xl bg-gradient-to-b from-sky-300 to-sky-500 text-white px-5 py-3 shadow-card cursor-pointer">
+            Импорт задач из JSON
+            <input id="jsonTasksInput" type="file" accept="application/json" class="hidden" />
+          </label>
+        </div>
+        <div class="grid gap-5">
+          ${getTopicNames().map((topic, i) => {
+            const stars = totalStarsForTopic(topic);
+            const complete = topicCompleted(topic);
+            return `
+              <button data-action="select-topic" data-topic="${topic}" class="btn-glossy text-left min-h-14 rounded-3xl p-6 shadow-card bg-gradient-to-br ${i===0 ? 'from-pink-200 via-yellow-100 to-yellow-200' : 'from-sky-200 via-blue-100 to-green-100'}">
+                <div class="text-3xl sm:text-4xl font-black">${topic}</div>
+                <div class="text-2xl mt-2 font-bold">Звёзды: ${stars}/${topicTasks(topic).length * 3} ${complete ? '✅' : ''}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </section>`;
+    }
+
+    function viewTask() {
+      const task = getCurrentTask();
+      const list = topicTasks(state.selectedTopic);
+      const progressValue = ((state.currentTaskIndex + 1) / list.length) * 100;
+      const check = state.currentCheck;
+
+      return `
+      <section class="screen space-y-4 pb-20">
+        <div class="flex items-center justify-between">
+          <button data-action="to-topics" class="text-2xl font-black">⬅️ Темы</button>
+          <div class="progress-bubble rounded-full bg-yellow-300 px-4 py-2 text-2xl font-black">${state.currentTaskIndex + 1}/${list.length}</div>
+        </div>
+
+        <div class="w-full h-5 rounded-full bg-white/70 overflow-hidden shadow-inner">
+          <div class="h-full bg-gradient-to-r from-green-400 to-green-600" style="width:${progressValue}%"></div>
+        </div>
+
+        <div class="glass-card rounded-3xl p-5 border-4 border-green-200">
+          <p class="text-xl sm:text-2xl font-black text-green-800 mb-2">Задача:</p>
+          <p class="text-3xl sm:text-4xl font-black leading-tight">${task.problem}</p>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-3xl sm:text-4xl font-black">Твои шаги</h3>
+            <button data-action="add-step" class="btn-glossy min-h-14 text-2xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-5 py-3 shadow-glossy">+ Добавить шаг</button>
+          </div>
+
+          <div class="space-y-3">
+            ${state.currentTaskSteps.length ? state.currentTaskSteps.map((step, idx) => {
+              const stepState = check?.stepChecks?.[idx];
+              const status = !check ? '' : (stepState.valid ? '✅' : '❌');
+              return `
+              <button data-action="edit-step" data-index="${idx}" class="w-full text-left card-pop rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-white to-green-50 shadow-card border-2 border-green-200 min-h-14">
+                <div class="flex justify-between items-start gap-2">
+                  <div class="text-2xl sm:text-3xl font-black break-words">${step.text}</div>
+                  <div class="text-4xl">${status}</div>
+                </div>
+              </button>`;
+            }).join('') : `<div class="rounded-3xl p-5 text-2xl font-bold bg-white/80 shadow-card">Добавь первый шаг ✍️</div>`}
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-3">
+          <button data-action="answer-modal" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-500 text-amber-900 px-5 py-4 shadow-card">Ввести ответ</button>
+          <div class="rounded-3xl bg-white/90 min-h-14 p-4 text-3xl font-black shadow-card">Ответ: ${state.currentAnswer || '...'}</div>
+        </div>
+
+        ${check ? `
+          <div class="rounded-3xl p-5 ${check.answerCorrect ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} border-4 shadow-card space-y-4">
+            <div class="flex items-center gap-3">
+              <span class="text-6xl">${check.answerCorrect ? '✅' : '❌'}</span>
+              <p class="text-2xl sm:text-3xl font-black">${check.message}</p>
+            </div>
+            ${starsHtml(check.stars, true)}
+            <div class="grid sm:grid-cols-2 gap-3">
+              <button data-action="retry" class="btn-glossy min-h-14 text-2xl font-black rounded-3xl bg-gradient-to-b from-slate-300 to-slate-400 text-slate-900 px-5 py-4 shadow-card">Попробовать ещё раз</button>
+              <button data-action="next" class="btn-glossy min-h-14 text-2xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-5 py-4 shadow-glossy">Далее</button>
+            </div>
+          </div>` : ''}
+
+        <div class="text-xl font-bold text-slate-700">Подсказка: «Далее» всегда доступно, но 3 звезды — это суперцель! 🌟</div>
+      </section>`;
+    }
+
+    function viewLessonComplete() {
+      const list = topicTasks(state.selectedTopic);
+      const topicStars = list.reduce((s, t) => s + (progress.taskResults[t.id]?.stars || 0), 0);
+      const topicMaxStars = list.length * 3;
+      return `
+      <section class="screen text-center space-y-6">
+        <div class="text-7xl bounce-slow">🎉</div>
+        <h2 class="text-5xl font-black text-green-700">Урок завершён!</h2>
+        <p class="text-3xl font-black">Отлично! +50 XP</p>
+        <div class="flex justify-center">${starsHtml(Math.min(3, Math.ceil(topicStars / list.length)), true)}</div>
+        <p class="text-2xl font-bold">Всего звёзд в теме: ${topicStars}/${topicMaxStars}</p>
+        <div class="grid gap-3 max-w-xl mx-auto">
+          <button data-action="to-topics" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-5 py-4 shadow-glossy">К темам</button>
+          <button data-action="go-achievements" class="btn-glossy min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-500 text-amber-900 px-5 py-4 shadow-card">Мои достижения</button>
+        </div>
+      </section>`;
+    }
+
+    function viewAchievements() {
+      return `
+      <section class="screen space-y-5">
+        <div class="flex justify-between items-center">
+          <button data-action="home" class="text-2xl font-black">⬅️ Домой</button>
+          <div class="text-2xl font-black bg-yellow-200 rounded-full px-4 py-2">XP: ${progress.xp}</div>
+        </div>
+        <h2 class="text-5xl font-black text-center text-green-700">Мои достижения</h2>
+        <div class="grid gap-3">
+          ${achievementCatalog.map(a => {
+            const unlocked = !!progress.achievements[a.key];
+            return `<div class="rounded-3xl p-5 shadow-card border-2 ${unlocked ? 'bg-gradient-to-r from-yellow-100 to-green-100 border-green-300' : 'bg-white/70 border-slate-300'}">
+              <div class="text-3xl font-black">${unlocked ? '🏅' : '🔒'} ${a.title}</div>
+              <div class="text-2xl font-bold mt-1">${a.text}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </section>`;
+    }
+
+    function stepModalHtml() {
+      if (state.modal !== 'step') return '';
+      const editMode = state.editingStepIndex !== null;
+      return `
+      <div class="fixed inset-x-0 bottom-0 z-50 no-dim-layer p-2 sm:p-4 pointer-events-none">
+        <div class="slide-up pointer-events-auto w-full max-w-2xl mx-auto rounded-t-4xl sm:rounded-4xl bg-white p-4 sm:p-6 shadow-2xl space-y-3 border-4 border-green-200 max-h-[54vh] overflow-y-auto">
+          <div class="flex items-center justify-between">
+            <h4 class="text-3xl sm:text-4xl font-black text-green-700">${editMode ? 'Изменить шаг' : 'Новый шаг'}</h4>
+            <button data-action="close-modal" class="text-4xl">✖️</button>
+          </div>
+          <p class="text-lg sm:text-xl font-bold text-slate-600">Окно внизу, чтобы условие задачи всегда оставалось видно 👀</p>
+          <textarea id="stepTextarea" data-role="step-input" class="w-full rounded-3xl border-4 border-green-200 min-h-[150px] text-2xl p-4 font-bold focus:outline-none focus:ring-4 focus:ring-green-300" placeholder="Например: 45 × 3 = 135">${state.stepDraft}</textarea>
+          <p class="text-xl font-bold text-slate-600">Можно писать любые пояснения рядом с вычислением.</p>
+          <button data-action="save-step" class="btn-glossy w-full min-h-14 text-3xl font-black rounded-3xl bg-gradient-to-b from-green-400 to-green-600 text-white px-5 py-4 shadow-glossy">Сохранить шаг</button>
+        </div>
+      </div>`;
+    }
+
+    function answerModalHtml() {
+      if (state.modal !== 'answer') return '';
+      const keys = ['7','8','9','4','5','6','1','2','3','.','0','back'];
+      return `
+      <div class="fixed inset-0 z-50 modal-backdrop flex items-end sm:items-center justify-center p-3">
+        <div class="slide-up w-full max-w-xl rounded-4xl bg-white p-5 sm:p-7 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-3xl sm:text-4xl font-black text-yellow-600">Ввести ответ</h4>
+            <button data-action="close-modal" class="text-4xl">✖️</button>
+          </div>
+          <div class="rounded-3xl bg-slate-100 border-4 border-yellow-200 min-h-14 p-4 text-5xl font-black text-right">${state.keypadValue || '0'}</div>
+          <div class="grid grid-cols-3 gap-3">
+            ${keys.map(key => {
+              const label = key === 'back' ? '←' : key;
+              return `<button data-action="key" data-key="${key}" class="btn-glossy min-h-14 rounded-3xl text-4xl font-black ${key==='back' ? 'bg-slate-300 text-slate-800' : 'bg-gradient-to-b from-yellow-200 to-yellow-400 text-amber-900'} shadow-card">${label}</button>`;
+            }).join('')}
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <button data-action="key" data-key="clear" class="btn-glossy min-h-14 rounded-3xl text-2xl font-black bg-slate-300 text-slate-900 shadow-card">Очистить</button>
+            <button data-action="save-answer" class="btn-glossy min-h-14 rounded-3xl text-2xl font-black bg-gradient-to-b from-green-400 to-green-600 text-white shadow-glossy">Сохранить ответ</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      let html = '';
+      if (state.view === 'home') html = viewHome();
+      if (state.view === 'how') html = viewHow();
+      if (state.view === 'topics') html = viewTopics();
+      if (state.view === 'task') html = viewTask();
+      if (state.view === 'lessonComplete') html = viewLessonComplete();
+      if (state.view === 'achievements') html = viewAchievements();
+
+      app.innerHTML = html + stepModalHtml() + answerModalHtml();
+      bindEvents();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('[data-action]').forEach(el => {
+        el.addEventListener('click', () => {
+          const action = el.dataset.action;
+          if (action === 'home') { state.view = 'home'; state.modal = null; }
+          if (action === 'go-how') state.view = 'how';
+          if (action === 'go-topics') state.view = 'topics';
+          if (action === 'go-achievements') state.view = 'achievements';
+          if (action === 'to-topics') { state.view = 'topics'; resetForTask(); }
+          if (action === 'select-topic') {
+            state.selectedTopic = el.dataset.topic;
+            state.currentTaskIndex = 0;
+            resetForTask();
+            state.view = 'task';
+          }
+          if (action === 'add-step') openStepModal(null);
+          if (action === 'edit-step') openStepModal(Number(el.dataset.index));
+          if (action === 'close-modal') { state.modal = null; render(); return; }
+          if (action === 'save-step') saveStep();
+          if (action === 'answer-modal') openAnswerModal();
+          if (action === 'save-answer') saveAnswer();
+          if (action === 'retry') resetForTask();
+          if (action === 'next') nextTask();
+          if (action === 'key') keypadPress(el.dataset.key);
+          render();
+        });
+      });
+
+      const jsonInput = document.getElementById('jsonTasksInput');
+      if (jsonInput) {
+        jsonInput.addEventListener('change', e => {
+          const file = e.target.files?.[0];
+          importTasksFromJson(file);
+          e.target.value = '';
+        });
+      }
+
+      const stepInput = document.querySelector('[data-role="step-input"]');
+      if (stepInput) {
+        stepInput.addEventListener('input', e => {
+          state.stepDraft = e.target.value;
+        });
+      }
+    }
+
+    // ----------------------------------------------------------
+    // Конфетти: простая канва-анимация на 3 секунды для 3 звёзд
+    // ----------------------------------------------------------
+    function launchConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#22C55E', '#FACC15', '#60A5FA', '#F472B6', '#ffffff'];
+      const pieces = Array.from({ length: 180 }, () => ({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * canvas.height * 0.4,
+        w: 8 + Math.random() * 10,
+        h: 8 + Math.random() * 14,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speedY: 2 + Math.random() * 4,
+        speedX: -2 + Math.random() * 4,
+        rot: Math.random() * 360,
+        spin: -6 + Math.random() * 12
+      }));
+
+      const start = performance.now();
+      function frame(now) {
+        const elapsed = now - start;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.x += p.speedX;
+          p.y += p.speedY;
+          p.rot += p.spin;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        if (elapsed < 3000) requestAnimationFrame(frame);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confettiCanvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    render();
+  </script>
+</body>
+</html>
