@@ -1,0 +1,84 @@
+{
+  "projects": [
+    {
+      "id": "RxyWmf7Ha7_F",
+      "title": "Новый проект",
+      "sourceType": "upload",
+      "videoUrl": "/uploads/1773267019437-a4TY07.mp4",
+      "interactions": [
+        {
+          "id": "ixNzjyRD",
+          "time": 1.4,
+          "type": "single",
+          "question": "4+6",
+          "options": [
+            {
+              "id": "TklDU",
+              "text": "10",
+              "correct": true
+            },
+            {
+              "id": "gis4Y",
+              "text": "45",
+              "correct": false
+            },
+            {
+              "id": "o_3lC",
+              "text": "54",
+              "correct": false
+            }
+          ],
+          "feedbackCorrect": "Верно!",
+          "feedbackIncorrect": "Неверно",
+          "pauseUntilAnswered": true
+        },
+        {
+          "id": "FzRhcsp6",
+          "time": 3.5,
+          "type": "text",
+          "question": "Божья ...",
+          "options": [
+            {
+              "id": "72Klh",
+              "text": "",
+              "correct": true
+            },
+            {
+              "id": "CqPse",
+              "text": "",
+              "correct": false
+            }
+          ],
+          "feedbackCorrect": "Верно!",
+          "feedbackIncorrect": "Неверно",
+          "pauseUntilAnswered": true,
+          "textAnswer": "коровка"
+        },
+        {
+          "id": "Kai25WSC",
+          "time": 4.6,
+          "type": "single",
+          "question": "она красная?",
+          "options": [
+            {
+              "id": "yes",
+              "text": "Да",
+              "correct": true
+            },
+            {
+              "id": "no",
+              "text": "Нет",
+              "correct": false
+            }
+          ],
+          "feedbackCorrect": "Верно!",
+          "feedbackIncorrect": "Неверно",
+          "pauseUntilAnswered": false,
+          "duration": 20
+        }
+      ],
+      "createdAt": "2026-03-11T22:10:12.978Z",
+      "updatedAt": "2026-03-11T22:13:03.785Z"
+    }
+  ]
+}
